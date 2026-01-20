@@ -525,16 +525,10 @@
             <!-- Warnings -->
             <div id="warnings"></div>
             
-            <!-- DD1750 Header Fields -->
-            <div class="card" style="background: #f8fafc; margin-bottom: 1.5rem;">
-                <h3 class="card-title" style="font-size: 1rem;">DD1750 Settings</h3>
-                <p style="color: var(--text-light); font-size: 0.875rem; margin-bottom: 1rem;">
-                    Page numbers are calculated automatically. Admin fields (Packed By, Boxes, Req No, etc.) can be filled in using Acrobat after download.
-                </p>
-                <div class="form-group" style="max-width: 200px;">
-                    <label class="form-label">Date (4)</label>
-                    <input type="date" id="headerDate" class="form-input">
-                </div>
+            <!-- DD1750 Info -->
+            <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+                <strong>Page numbers are calculated automatically.</strong><br>
+                <small>All other fields (Packed By, Boxes, Req No, Order No, End Item, Date, Signature) can be filled in using Acrobat after download.</small>
             </div>
             
             <!-- Items Table -->
@@ -696,10 +690,6 @@
                 step1Indicator.classList.add('complete');
                 step2Indicator.classList.add('active');
                 
-                // Set default date to today
-                const today = new Date().toISOString().split('T')[0];
-                document.getElementById('headerDate').value = today;
-                
                 // Show step 2
                 step1.classList.add('hidden');
                 step2.classList.remove('hidden');
@@ -818,10 +808,8 @@
             generateBtn.disabled = true;
             loadingGenerate.classList.remove('hidden');
             
-            // Collect header information (only date - admin fields filled in Acrobat)
-            const header = {
-                date: formatDate(document.getElementById('headerDate').value),
-            };
+            // No header fields needed - all filled in Acrobat
+            const header = {};
             
             try {
                 const response = await fetch('/generate', {
@@ -881,9 +869,6 @@
             extractBtn.disabled = true;
             startPage.value = '0';
             
-            // Clear date field
-            document.getElementById('headerDate').value = '';
-            
             // Clear items table
             itemsBody.innerHTML = '';
             
@@ -902,18 +887,6 @@
             step1.classList.remove('hidden');
             step2.classList.add('hidden');
         });
-        
-        // Format date from YYYY-MM-DD to DD MMM YYYY
-        function formatDate(dateStr) {
-            if (!dateStr) return '';
-            const date = new Date(dateStr);
-            const months = ['JAN', 'FEB', 'MAR', 'APR', 'MAY', 'JUN', 
-                           'JUL', 'AUG', 'SEP', 'OCT', 'NOV', 'DEC'];
-            const day = date.getDate();
-            const month = months[date.getMonth()];
-            const year = date.getFullYear();
-            return `${day} ${month} ${year}`;
-        }
         
         function escapeHtml(str) {
             if (!str) return '';
