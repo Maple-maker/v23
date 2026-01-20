@@ -638,17 +638,16 @@ def generate_dd1750_overlay(
     
     Only fills in:
     - Page numbers (automatically calculated)
-    - Date (if provided)
     - Table items
     
-    Admin fields (Packed By, Boxes, Req No, Order No, End Item) are left blank
-    for the user to fill in using Acrobat.
+    All other fields (Packed By, Boxes, Req No, Order No, End Item, Date) 
+    are left blank for the user to fill in using Acrobat.
     
     Args:
         items: List of items for this page (max 18)
         page_num: Current page number (1-based)
         total_pages: Total number of pages
-        header: Optional header information (only date is used)
+        header: Optional header information (not used - kept for API compatibility)
         
     Returns:
         BytesIO buffer containing the overlay PDF
@@ -657,17 +656,12 @@ def generate_dd1750_overlay(
     can = canvas.Canvas(packet, pagesize=(PAGE_W, PAGE_H))
     
     # === HEADER FIELDS ===
-    # Only fill in page numbers and date - user fills rest in Acrobat
+    # Only fill in page numbers - user fills everything else in Acrobat
     
     # PAGE NUMBERS - Always fill these in
     can.setFont("Helvetica", 10)
     can.drawCentredString(472, PAGE_H - 132, str(page_num))      # Current page
     can.drawCentredString(520, PAGE_H - 132, str(total_pages))   # Total pages
-    
-    # DATE - if provided
-    if header and header.date:
-        can.setFont("Helvetica", 9)
-        can.drawString(445, PAGE_H - 103, header.date[:15])
     
     # === TABLE CONTENT ===
     for i, item in enumerate(items):
