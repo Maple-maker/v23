@@ -636,12 +636,11 @@ def generate_dd1750_overlay(
     """
     Generate a PDF overlay with item data for a single DD1750 page.
     
-    Only fills in:
+    Fills in:
     - Page numbers (automatically calculated)
     - Table items
     
-    All other fields (Packed By, Boxes, Req No, Order No, End Item, Date) 
-    are left blank for the user to fill in using Acrobat.
+    Form fields are added separately after the merge in generate_dd1750_from_items.
     
     Args:
         items: List of items for this page (max 18)
@@ -656,9 +655,7 @@ def generate_dd1750_overlay(
     can = canvas.Canvas(packet, pagesize=(PAGE_W, PAGE_H))
     
     # === HEADER FIELDS ===
-    # Only fill in page numbers - user fills everything else in Acrobat
-    
-    # PAGE NUMBERS - Always fill these in
+    # PAGE NUMBERS - Always fill these in as static text
     can.setFont("Helvetica", 10)
     can.drawCentredString(472, PAGE_H - 132, str(page_num))      # Current page
     can.drawCentredString(520, PAGE_H - 132, str(total_pages))   # Total pages
@@ -725,6 +722,12 @@ def generate_dd1750_from_items(
     Returns:
         Tuple of (output_path, item_count)
     """
+    from pypdf.generic import (
+        DictionaryObject, ArrayObject, NameObject, 
+        TextStringObject, NumberObject, FloatObject
+    )
+    from pypdf.annotations import FreeText
+    
     if not items:
         # Return blank template if no items
         reader = PdfReader(template_path)
@@ -755,6 +758,56 @@ def generate_dd1750_from_items(
         template_page = PdfReader(template_path).pages[0]
         template_page.merge_page(overlay.pages[0])
         writer.add_page(template_page)
+    
+    # Add fillable form fields to the first page
+    # Define form field positions (x, y, width, height) based on DD1750 layout
+    form_fields = [
+        {'name': 'packed_by', 'rect': (92, 732, 230, 746), 'tooltip': 'Packed By'},
+        {'name': 'no_boxes', 'rect': (282, 732, 332, 746), 'tooltip': 'Number of Boxes'},
+        {'name': 'req_no', 'rect': (405, 732, 566, 746), 'tooltip': 'Requisition Number'},
+        {'name': 'order_no', 'rect': (405, 712, 566, 726), 'tooltip': 'Order Number'},
+        {'name': 'end_item', 'rect': (92, 689, 370, 703), 'tooltip': 'End Item'},
+        {'name': 'date', 'rect': (447, 689, 566, 703), 'tooltip': 'Date'},
+        {'name': 'typed_name', 'rect': (92, 46, 290, 60), 'tooltip': 'Typed Name and Title'},
+    ]
+    
+    # Create AcroForm for the document
+    writer._root_object[NameObject("/AcroForm")] = DictionaryObject({
+        NameObject("/Fields"): ArrayObject([]),
+        NameObject("/NeedAppearances"): NameObject("/true")
+    })
+    
+    # Add text fields to first page
+    page = writer.pages[0]
+    
+    for field_def in form_fields:
+        # Create text field annotation
+        field = DictionaryObject({
+            NameObject("/Type"): NameObject("/Annot"),
+            NameObject("/Subtype"): NameObject("/Widget"),
+            NameObject("/FT"): NameObject("/Tx"),  # Text field
+            NameObject("/T"): TextStringObject(field_def['name']),
+            NameObject("/Rect"): ArrayObject([
+                FloatObject(field_def['rect'][0]),
+                FloatObject(field_def['rect'][1]),
+                FloatObject(field_def['rect'][2]),
+                FloatObject(field_def['rect'][3])
+            ]),
+            NameObject("/F"): NumberObject(4),  # Print flag
+            NameObject("/Ff"): NumberObject(0),  # Field flags (editable)
+            NameObject("/DA"): TextStringObject("/Helv 9 Tf 0 g"),  # Default appearance
+            NameObject("/TU"): TextStringObject(field_def['tooltip']),  # Tooltip
+            NameObject("/V"): TextStringObject(""),  # Initial value
+            NameObject("/DV"): TextStringObject(""),  # Default value
+        })
+        
+        # Add to page annotations
+        if "/Annots" not in page:
+            page[NameObject("/Annots")] = ArrayObject([])
+        page[NameObject("/Annots")].append(field)
+        
+        # Add to AcroForm fields
+        writer._root_object["/AcroForm"]["/Fields"].append(field)
     
     with open(output_path, 'wb') as f:
         writer.write(f)
