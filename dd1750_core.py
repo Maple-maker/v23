@@ -198,9 +198,6 @@ def find_column_indices(header: List[str]) -> Dict[str, Optional[int]]:
         elif 'IMAGE' in text or text == 'IMG':
             indices['image'] = i
     
-    # Debug output
-    print(f"Column indices found: {indices}")
-    
     return indices
 
 
@@ -331,8 +328,6 @@ def extract_items_gcss_standard(tables: List[List[List[str]]]) -> List[BomItem]:
         header = table[0]
         indices = find_column_indices(header)
         
-        print(f"Header row: {header}")
-        
         # Need at least description column
         if indices['description'] is None:
             # Try to find description column by looking at header content
@@ -344,7 +339,6 @@ def extract_items_gcss_standard(tables: List[List[List[str]]]) -> List[BomItem]:
                         break
         
         if indices['description'] is None:
-            print("No description column found, skipping table")
             continue
         
         for row_num, row in enumerate(table[1:]):
@@ -403,9 +397,6 @@ def extract_items_gcss_standard(tables: List[List[List[str]]]) -> List[BomItem]:
                 qty_cell = row[indices['auth_qty']]
                 if qty_cell:
                     qty = extract_quantity(qty_cell)
-                    print(f"  Auth Qty cell: '{qty_cell}' -> {qty}")
-            
-            print(f"Extracted item: {description[:40]}... | NSN: {nsn} | Qty: {qty}")
             
             # Always use EA for unit of issue
             items.append(BomItem(
